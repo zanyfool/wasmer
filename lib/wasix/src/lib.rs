@@ -389,8 +389,19 @@ pub fn generate_import_object_from_env(
     };
 
     imports.extend(&imports_wasi_generic);
+    let exports_iphone_desk = iphone_desk_exports(store, ctx);
+    imports.extend(&imports! {
+        "iphone_desk_wasix32_v1" => exports_iphone_desk,
+    });
 
     imports
+}
+
+// Experimental app extensions stay outside the standardized WASIX namespaces.
+fn iphone_desk_exports(mut store: &mut impl AsStoreMut, env: &FunctionEnv<WasiEnv>) -> Exports {
+    namespace! {
+        "fchdir" => wasmer::Function::new_typed_with_env(&mut store, env, syscalls::fchdir::<Memory32>),
+    }
 }
 
 fn wasi_exports_generic(mut store: &mut impl AsStoreMut, env: &FunctionEnv<WasiEnv>) -> Exports {
@@ -821,6 +832,7 @@ fn import_object_for_all_wasi_versions(
     let exports_wasi_unstable = wasi_unstable_exports(store, env);
     let exports_wasi_snapshot_preview1 = wasi_snapshot_preview1_exports(store, env);
     let exports_wasix_32v1 = wasix_exports_32(store, env);
+    let exports_iphone_desk = iphone_desk_exports(store, env);
 
     // Allowed due to JS feature flag complications.
     #[allow(unused_mut)]
@@ -829,6 +841,7 @@ fn import_object_for_all_wasi_versions(
         "wasi_unstable" => exports_wasi_unstable,
         "wasi_snapshot_preview1" => exports_wasi_snapshot_preview1,
         "wasix_32v1" => exports_wasix_32v1,
+        "iphone_desk_wasix32_v1" => exports_iphone_desk,
     };
 
     #[cfg(feature = "memory64")]
